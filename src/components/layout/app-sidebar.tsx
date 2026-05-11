@@ -32,7 +32,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon" variant="floating">
-      <SidebarHeader className="gap-2 flex-row items-center">
+      <SidebarHeader className="flex-row items-center gap-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
