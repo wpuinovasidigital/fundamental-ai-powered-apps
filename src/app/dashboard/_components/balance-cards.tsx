@@ -7,7 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getBalanceSummary } from '@/features/action';
+import { getBalanceSummary } from '@/features/transaction/action';
 import { convertToIDR } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { TrendingDownIcon, TrendingUpIcon, WalletIcon } from 'lucide-react';
@@ -27,7 +27,7 @@ export function BalanceCards() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 mb-8 md:grid-cols-3">
+    <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-primary">
