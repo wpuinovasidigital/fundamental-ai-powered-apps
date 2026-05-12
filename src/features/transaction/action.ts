@@ -40,7 +40,8 @@ export async function getTransactions(params?: {
     .from('transactions')
     .select('id, amount, type, description, date, category', {
       count: 'exact',
-    });
+    })
+    .order('date');
 
   if (search) {
     query = query.ilike('description', `%${search}%`);
@@ -71,4 +72,15 @@ export async function createTransaction(
   if (error) throw new Error(error.message);
 
   return data;
+}
+
+export async function deleteTransaction(id: string) {
+  const supabase = await createClient();
+  const { error, success } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+
+  return success;
 }
