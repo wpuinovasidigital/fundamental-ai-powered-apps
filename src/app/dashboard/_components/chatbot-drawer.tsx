@@ -11,7 +11,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
-import { handleChat, handleChatWithThinking } from '@/features/ai/chat';
+import { handleChat } from '@/features/ai/chat';
 import { cn } from '@/lib/utils';
 import { BotIcon, ChevronDownIcon, EllipsisIcon, XIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -35,37 +35,31 @@ export default function ChatbotDrawer() {
       }[];
     }[]
   >([]);
+  const [isThinking, setIsThinking] = useState<boolean>(false);
 
   const { mutate: handleChatMutation, isPending } = useMutation({
-    mutationFn: handleChat,
+    mutationFn: ({
+      message,
+      isThinking,
+    }: {
+      message: string;
+      isThinking: boolean;
+    }) => handleChat(message, isThinking),
     onSuccess: (response) => {
-      const botMessage = {
-        role: 'model',
-        parts: [{ text: response || 'Terjadi kesalahan' }],
-      };
-      setConversation((prev) => [...prev, botMessage]);
-    },
-    onError: (error) => {
-      const botMessage = {
-        role: 'model',
-        parts: [{ text: 'Terjadi kesalahan: ' + error.message }],
-      };
-      setConversation((prev) => [...prev, botMessage]);
-    },
-  });
+      let parts: {
+        text: string;
+        thought?: boolean;
+      }[] = [];
 
-  const {
-    mutate: handleChatWithThinkingMutation,
-    isPending: isPendingChatWithThinking,
-  } = useMutation({
-    mutationFn: handleChatWithThinking,
-    onSuccess: (response) => {
+      if (response?.thought !== '') {
+        parts = [
+          ...parts,
+          { thought: true, text: response?.thought || 'Terjadi kesalahan' },
+        ];
+      }
       const botMessage = {
         role: 'model',
-        parts: [
-          { thought: true, text: response?.thought || 'Terjadi kesalahan' },
-          { text: response?.answer || 'Terjadi kesalahan' },
-        ],
+        parts: [...parts, { text: response?.answer || 'Terjadi kesalahan' }],
       };
       setConversation((prev) => [...prev, botMessage]);
     },
@@ -84,7 +78,7 @@ export default function ChatbotDrawer() {
       parts: [{ text: message }],
     };
     setConversation((prev) => [...prev, newMessage]);
-    handleChatMutation(message);
+    handleChatMutation({ message, isThinking });
   }
 
   useEffect(() => {
@@ -193,7 +187,11 @@ export default function ChatbotDrawer() {
           )}
         </div>
         <DrawerFooter>
-          <ChatbotTextarea sendMessage={sendMessage} />
+          <ChatbotTextarea
+            isThinking={isThinking}
+            setIsThinking={setIsThinking}
+            sendMessage={sendMessage}
+          />
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
