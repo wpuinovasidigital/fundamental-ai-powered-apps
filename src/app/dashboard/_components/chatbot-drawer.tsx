@@ -11,13 +11,18 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
-import { handleChat } from '@/features/ai/chat';
+import { handleChat, handleChatWithThinking } from '@/features/ai/chat';
 import { cn } from '@/lib/utils';
-import { BotIcon, EllipsisIcon, XIcon } from 'lucide-react';
+import { BotIcon, ChevronDownIcon, EllipsisIcon, XIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ChatbotTextarea from './chatbot-textarea';
 import { useMutation } from '@tanstack/react-query';
 import Markdown from 'react-markdown';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 export default function ChatbotDrawer() {
   const chatRef = useRef<HTMLDivElement>(null);
@@ -26,6 +31,7 @@ export default function ChatbotDrawer() {
       role: string;
       parts: {
         text: string;
+        thought?: boolean;
       }[];
     }[]
   >([]);
@@ -36,6 +42,30 @@ export default function ChatbotDrawer() {
       const botMessage = {
         role: 'model',
         parts: [{ text: response || 'Terjadi kesalahan' }],
+      };
+      setConversation((prev) => [...prev, botMessage]);
+    },
+    onError: (error) => {
+      const botMessage = {
+        role: 'model',
+        parts: [{ text: 'Terjadi kesalahan: ' + error.message }],
+      };
+      setConversation((prev) => [...prev, botMessage]);
+    },
+  });
+
+  const {
+    mutate: handleChatWithThinkingMutation,
+    isPending: isPendingChatWithThinking,
+  } = useMutation({
+    mutationFn: handleChatWithThinking,
+    onSuccess: (response) => {
+      const botMessage = {
+        role: 'model',
+        parts: [
+          { thought: true, text: response?.thought || 'Terjadi kesalahan' },
+          { text: response?.answer || 'Terjadi kesalahan' },
+        ],
       };
       setConversation((prev) => [...prev, botMessage]);
     },
@@ -121,7 +151,27 @@ export default function ChatbotDrawer() {
                     )}
                     {message.role === 'model' ? (
                       <div className="response-ai">
-                        <Markdown>{message.parts[0].text}</Markdown>
+                        {message.parts.map((part, indexPart) => (
+                          <div key={`response-ai-${index}-${indexPart}`}>
+                            {part.thought ? (
+                              <Collapsible>
+                                <CollapsibleTrigger asChild>
+                                  <Button variant="ghost">
+                                    Tampilkan alur berpikir
+                                    <ChevronDownIcon />
+                                  </Button>
+                                </CollapsibleTrigger>
+                                <CollapsibleContent>
+                                  <div className="pl-2 ml-4 border-l">
+                                    <Markdown>{part.text}</Markdown>
+                                  </div>
+                                </CollapsibleContent>
+                              </Collapsible>
+                            ) : (
+                              <Markdown>{part.text}</Markdown>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     ) : (
                       message.parts[0].text
