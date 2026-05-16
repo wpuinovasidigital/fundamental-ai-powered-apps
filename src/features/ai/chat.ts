@@ -8,7 +8,6 @@ const ai = new GoogleGenAI({
 });
 
 export async function handleChat(message: string, isThinking: boolean) {
-  console.log(isThinking);
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: message,
@@ -43,4 +42,44 @@ export async function handleChat(message: string, isThinking: boolean) {
     result.answer = `${response.text}`;
   }
   return result;
+}
+
+export async function* handleChatStreaming(
+  message: string,
+  isThinking: boolean,
+) {
+  const response = await ai.models.generateContentStream({
+    model: 'gemini-3-flash-preview',
+    contents: message,
+    config: {
+      thinkingConfig: {
+        includeThoughts: isThinking,
+        // thinkingLevel: isThinking ? ThinkingLevel.HIGH : ThinkingLevel.MINIMAL,
+        // thinkingBudget: isThinking ? -1 : 0,
+      },
+    },
+  });
+
+  if (isThinking) {
+    for await (const chunk of response) {
+      const parts = chunk.candidates?.[0]?.content?.parts;
+      if (parts) {
+        for (const part of parts) {
+          if (!part.text) {
+            continue;
+          } else if (part.thought) {
+            yield `[thought]${part.text}`;
+          } else {
+            yield part.text;
+          }
+        }
+      }
+    }
+  } else {
+    for await (const chunk of response) {
+      if (chunk.text) {
+        yield chunk.text;
+      }
+    }
+  }
 }
