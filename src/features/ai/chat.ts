@@ -61,7 +61,19 @@ export async function* handleChatStreaming(
         // thinkingLevel: isThinking ? ThinkingLevel.HIGH : ThinkingLevel.MINIMAL,
         // thinkingBudget: isThinking ? -1 : 0,
       },
-      systemInstruction: `Kamu adalah seorang financial advisor yang akan menjawab pertanyaan user`,
+      systemInstruction: `
+      Kamu adalah seorang financial advisor yang akan menjawab pertanyaan user
+      `,
+      // sampling params
+      temperature: 0.2,
+      topK: 5,
+      topP: 0.1,
+      // output control
+      maxOutputTokens: 1024,
+      stopSequences: ['\n\n\n', '###', 'User:', 'Pengguna:'],
+      // repetition penalties
+      // presencePenalty: 1.5,
+      // frequencyPenalty: 1.5,
     },
   });
 
