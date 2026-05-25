@@ -1,5 +1,4 @@
 import { Metadata } from 'next';
-import { BalanceCards } from './_components/balance-cards';
 import DashboardContent from './_components/dashboard-content';
 
 export const metadata: Metadata = {
