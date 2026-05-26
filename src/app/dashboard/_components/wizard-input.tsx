@@ -33,10 +33,7 @@ export default function WizardInput({ refetch }: { refetch: () => void }) {
       if (!aiResponse) {
         throw new Error('Failed to process AI input');
       }
-      const embedding = await generateEmbedding(JSON.stringify(aiResponse));
-      console.log(embedding);
-      return;
-      //   return createTransaction(aiResponse);
+      return createTransaction(aiResponse);
     },
     onSuccess: () => {
       toast.success('Transaction created successfully!');
