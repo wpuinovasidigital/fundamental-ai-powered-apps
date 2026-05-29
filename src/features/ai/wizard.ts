@@ -64,7 +64,9 @@ export async function handleWizardInput(message: string) {
     throw new Error('Cannot create transaction with invalid amount');
   }
 
-  return transaction;
+  await createTransaction(transaction);
+
+  return 'Create transaction success';
 }
 
 const createTransactionDeclaration: FunctionDeclaration = {
@@ -99,7 +101,8 @@ const createTransactionDeclaration: FunctionDeclaration = {
       },
       description: {
         type: Type.STRING,
-        description: 'A brief description of the transaction',
+        description:
+          'A brief description of the transaction, first letter capitalized',
       },
       date: {
         type: Type.STRING,
@@ -139,22 +142,27 @@ export async function handleWizardTools(message: string) {
   });
 
   if (response.functionCalls && response.functionCalls.length > 0) {
-    const functionCall = response.functionCalls[0];
-    switch (functionCall.name) {
-      case 'create_transaction':
-        const args = functionCall.args;
-        if (!args) {
-          throw new Error('No arguments provided for create transaction');
+    await Promise.all(
+      response.functionCalls.map(async (functionCall) => {
+        switch (functionCall.name) {
+          case 'create_transaction':
+            const args = functionCall.args;
+            if (!args) {
+              throw new Error('No arguments provided for create transaction');
+            }
+            const transaction = transactionSchema.parse(args);
+            if (transaction.amount <= 0) {
+              throw new Error('Cannot create transaction with invalid amount');
+            }
+            await createTransaction(transaction);
+            break;
+          default:
+            throw new Error(`Unknown function call`);
         }
-        const transaction = transactionSchema.parse(args);
-        if (transaction.amount <= 0) {
-          throw new Error('Cannot create transaction with invalid amount');
-        }
-        await createTransaction(transaction);
-        break;
-      default:
-        throw new Error(`Unknown function call`);
-    }
+      }),
+    );
+
+    return 'Function executed successfully';
   } else {
     throw new Error('AI did not call any function');
   }
