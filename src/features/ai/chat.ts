@@ -61,6 +61,7 @@ async function generalChat(conversation: Content[], isThinking?: boolean) {
       tools: [
         {
           googleSearch: {},
+          urlContext: {},
         },
       ],
       systemInstruction: `
