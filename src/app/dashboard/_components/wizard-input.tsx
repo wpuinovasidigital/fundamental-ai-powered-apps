@@ -9,6 +9,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Loader2Icon, SendIcon, SparklesIcon } from 'lucide-react';
 import { KeyboardEvent } from 'react';
 import { Controller, useForm } from 'react-hook-form';
+import Markdown from 'react-markdown';
 import { toast } from 'sonner';
 import z from 'zod';
 
@@ -27,7 +28,11 @@ export default function WizardInput({ refetch }: { refetch: () => void }) {
   const { mutate, isPending } = useMutation({
     mutationFn: handleWizardTools,
     onSuccess: (response) => {
-      toast.success(response);
+      toast.success(
+        <div className="response-ai w-full!">
+          <Markdown>{response}</Markdown>
+        </div>,
+      );
       refetch();
       form.reset();
     },
