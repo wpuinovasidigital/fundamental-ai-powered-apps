@@ -20,6 +20,12 @@ export async function extractReceiptData(formData: FormData) {
       role: 'user',
       parts: [
         {
+          inlineData: {
+            mimeType,
+            data: base64Data,
+          },
+        },
+        {
           text: `
             <role>
                 You are an AI finance assitant, who can extract transaction details from receipt.
@@ -42,12 +48,6 @@ export async function extractReceiptData(formData: FormData) {
                 Respond with only the raw JSON object, no markdown blocks, no text before or after.
             </outputFormat>
                 `,
-        },
-        {
-          inlineData: {
-            mimeType,
-            data: base64Data,
-          },
         },
       ],
     },
