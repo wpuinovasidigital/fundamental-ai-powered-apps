@@ -155,7 +155,7 @@ export default function ChatbotDrawer() {
           {conversation.length > 0 ? (
             <div
               ref={chatRef}
-              className="flex flex-col h-full gap-8 overflow-x-hidden overflow-y-auto no-scrollbar"
+              className="flex flex-col h-full overflow-x-hidden overflow-y-auto gap-8 no-scrollbar"
             >
               {conversation.map((message, index) => (
                 <div
@@ -172,7 +172,7 @@ export default function ChatbotDrawer() {
                     })}
                   >
                     {message.role === 'model' && (
-                      <div className="flex items-center gap-1 text-xs font-semibold text-primary">
+                      <div className="flex items-center text-xs font-semibold gap-1 text-primary">
                         <BotIcon />
                         AI Advisor
                       </div>
@@ -208,7 +208,7 @@ export default function ChatbotDrawer() {
                 </div>
               ))}
               {isPending && (
-                <div className="flex items-center animate-pulse -mt-8">
+                <div className="flex items-center -mt-8 animate-pulse">
                   <EllipsisIcon className="size-8 text-primary/50" />
                 </div>
               )}

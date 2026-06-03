@@ -65,7 +65,7 @@ export default function ChatbotTextarea({
               id="form-message"
               placeholder="Ask AI Advisor here"
               autoComplete="off"
-              className="h-16 px-3 py-2 rounded-md resize-none focus:outline-none"
+              className="h-16 px-3 py-2 resize-none rounded-md focus:outline-none"
               onKeyDown={handleKeyDown}
             />
           </Field>
