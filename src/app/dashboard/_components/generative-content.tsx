@@ -3,7 +3,11 @@ import { ButtonGroup } from '@/components/ui/button-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { generateChart, generateImage } from '@/features/ai/generative-content';
+import {
+  generateChart,
+  generateImage,
+  generateVideo,
+} from '@/features/ai/generative-content';
 import { cn, convertToIDR } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
@@ -13,6 +17,7 @@ import {
   Loader2Icon,
   Sparkles,
   SparklesIcon,
+  VideoIcon,
 } from 'lucide-react';
 import { KeyboardEvent, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -60,6 +65,10 @@ export default function GenerativeContent() {
         type: 'image';
         data: string;
       }
+    | {
+        type: 'video';
+        data: string;
+      }
     | null
   >(null);
 
@@ -81,6 +90,12 @@ export default function GenerativeContent() {
           return {
             type: 'image',
             data: resultImage,
+          };
+        case 'video':
+          const resultVideo = await generateVideo(request);
+          return {
+            type: 'video',
+            data: resultVideo,
           };
         default:
           return null;
@@ -138,6 +153,14 @@ export default function GenerativeContent() {
                 onClick={() => setInsightType('image')}
               >
                 <ImageIcon />
+              </Button>
+              <Button
+                variant={insightType === 'video' ? 'default' : 'secondary'}
+                type="button"
+                size="icon"
+                onClick={() => setInsightType('video')}
+              >
+                <VideoIcon />
               </Button>
             </ButtonGroup>
             <div className="flex flex-row gap-2">
@@ -276,6 +299,18 @@ export default function GenerativeContent() {
                   alt="Generate Image"
                   className="rounded-xl"
                 />
+              </div>
+            )}
+
+            {result.type === 'video' && (
+              <div className="flex items-center">
+                <video
+                  src={result.data}
+                  controls
+                  className="w-full border rounded-xl aspect-video"
+                >
+                  Your browser doesn't support
+                </video>
               </div>
             )}
           </div>
