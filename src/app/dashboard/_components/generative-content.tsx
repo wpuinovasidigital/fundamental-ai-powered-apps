@@ -3,12 +3,13 @@ import { ButtonGroup } from '@/components/ui/button-group';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Field } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { generateChart } from '@/features/ai/generative-content';
+import { generateChart, generateImage } from '@/features/ai/generative-content';
 import { cn, convertToIDR } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation } from '@tanstack/react-query';
 import {
   ChartPieIcon,
+  ImageIcon,
   Loader2Icon,
   Sparkles,
   SparklesIcon,
@@ -28,6 +29,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import Image from 'next/image';
 
 const formSchema = z.object({
   request: z.string().min(1, 'Request is required'),
@@ -48,11 +50,18 @@ export default function GenerativeContent() {
     'chart',
   );
 
-  const [result, setResult] = useState<{
-    type: 'chart';
-    chartType: 'bar' | 'pie';
-    data: { name: string; value: number }[];
-  } | null>(null);
+  const [result, setResult] = useState<
+    | {
+        type: 'chart';
+        chartType: 'bar' | 'pie';
+        data: { name: string; value: number }[];
+      }
+    | {
+        type: 'image';
+        data: string;
+      }
+    | null
+  >(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -67,6 +76,12 @@ export default function GenerativeContent() {
         case 'chart':
           const result = await generateChart(request);
           return { ...result, type: 'chart' };
+        case 'image':
+          const resultImage = await generateImage(request);
+          return {
+            type: 'image',
+            data: resultImage,
+          };
         default:
           return null;
       }
@@ -116,6 +131,14 @@ export default function GenerativeContent() {
               >
                 <ChartPieIcon />
               </Button>
+              <Button
+                variant={insightType === 'image' ? 'default' : 'secondary'}
+                type="button"
+                size="icon"
+                onClick={() => setInsightType('image')}
+              >
+                <ImageIcon />
+              </Button>
             </ButtonGroup>
             <div className="flex flex-row gap-2">
               <Controller
@@ -148,7 +171,7 @@ export default function GenerativeContent() {
           </form>
         </div>
       </CardHeader>
-      <CardContent className="h-75">
+      <CardContent className={cn(result?.type === 'chart' && 'h-70')}>
         {error && (
           <div className="p-4 text-sm border rounded-lg text-destructive border-destructive/50 bg-destructive/10">
             {error.message}
@@ -158,7 +181,7 @@ export default function GenerativeContent() {
         {!result ? (
           <div className="flex items-center justify-center border-2 border-dashed rounded-lg h-70">
             {isPending ? (
-              <div>
+              <div className="flex flex-col items-center">
                 <Loader2Icon className="size-8 animate-spin" />
                 <span>AI is generating insight</span>
               </div>
@@ -242,6 +265,18 @@ export default function GenerativeContent() {
                   </PieChart>
                 )}
               </ResponsiveContainer>
+            )}
+
+            {result.type === 'image' && (
+              <div className="flex items-center">
+                <Image
+                  width={1920}
+                  height={1080}
+                  src={result.data}
+                  alt="Generate Image"
+                  className="rounded-xl"
+                />
+              </div>
             )}
           </div>
         )}
