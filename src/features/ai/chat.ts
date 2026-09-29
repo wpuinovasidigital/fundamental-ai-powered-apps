@@ -217,7 +217,7 @@ export async function* handleChatStreaming(
     while (running) {
       iterate++;
       const response = await ai.models.generateContentStream({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-3.8-flash',
         contents,
         config: {
           tools: [
