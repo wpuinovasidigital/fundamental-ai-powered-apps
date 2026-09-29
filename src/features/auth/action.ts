@@ -63,3 +63,14 @@ export async function updateUser(
 
   return data;
 }
+
+export async function getUserData() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error('Unauthorized');
+
+  return user;
+}
