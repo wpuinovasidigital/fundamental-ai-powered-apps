@@ -185,7 +185,7 @@ export default function RegisterPage() {
                     <Input
                       {...field}
                       id="confirm_password"
-                      type="confirm_password"
+                      type="password"
                       placeholder="Repeat your password"
                       disabled={isPending}
                       required

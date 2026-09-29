@@ -1,6 +1,6 @@
 'use server';
 
-import { User } from '@/app/types/auth';
+import { User, UserUpdated } from '@/app/types/auth';
 import { createClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 
@@ -34,6 +34,28 @@ export async function authLogin(user: User) {
     email: user.email,
     password: user.password,
   });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return data;
+}
+
+export async function updateUser(
+  type: 'info' | 'password',
+  payload: UserUpdated,
+) {
+  const supabase = await createClient();
+  const newData =
+    type === 'info'
+      ? {
+          data: { ...payload },
+        }
+      : {
+          password: payload.password,
+        };
+  const { data, error } = await supabase.auth.updateUser(newData);
 
   if (error) {
     throw new Error(error.message);

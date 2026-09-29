@@ -17,6 +17,7 @@ import {
   CoinsIcon,
   LayoutDashboardIcon,
   LogOutIcon,
+  UserIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
@@ -33,6 +34,11 @@ const sidebarItems = [
     label: 'Transaction',
     icon: <BanknoteIcon />,
     href: '/dashboard/transaction',
+  },
+  {
+    label: 'Profile',
+    icon: <UserIcon />,
+    href: '/dashboard/profile',
   },
 ];
 
