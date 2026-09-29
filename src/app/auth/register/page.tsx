@@ -85,7 +85,6 @@ export default function RegisterPage() {
     <main className="flex flex-col items-center justify-center min-h-screen">
       <CoinsIcon className="text-primary size-20" />
       <h1 className="text-4xl font-bold text-primary">Fina App</h1>
-      <p className="mt-2 text-lg"></p>
 
       <Card className="w-md mt-4 gap-4">
         <CardHeader>
@@ -160,7 +159,7 @@ export default function RegisterPage() {
                 name="password"
                 render={({ field, fieldState }) => (
                   <Field className="gap-1">
-                    <FieldLabel htmlFor="password">password</FieldLabel>
+                    <FieldLabel htmlFor="password">Password</FieldLabel>
                     <Input
                       {...field}
                       id="password"
