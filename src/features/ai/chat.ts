@@ -322,10 +322,30 @@ export async function createChatSession(title: string = 'New Conversation') {
       user_id: user.id,
       messages: [],
     })
-    .select()
+    .select('*')
     .single();
 
   if (error) throw new Error(error.message);
 
   return data;
+}
+
+export async function updateChatSession(id: string, messages: Conversation[]) {
+  const supabase = await createClient();
+  const user = await getUserData();
+
+  if (!user) throw new Error('Unauthorized');
+
+  const { error, success } = await supabase
+    .from('chat_sessions')
+    .update({
+      messages,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) throw new Error(error.message);
+
+  return { success };
 }

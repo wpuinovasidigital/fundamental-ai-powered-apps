@@ -11,7 +11,11 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
-import { createChatSession, handleChatStreaming } from '@/features/ai/chat';
+import {
+  createChatSession,
+  handleChatStreaming,
+  updateChatSession,
+} from '@/features/ai/chat';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeftIcon,
@@ -32,7 +36,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Conversation } from '@/types/ai';
+import { ChatSession, Conversation } from '@/types/ai';
+import { toast } from 'sonner';
 
 export default function ChatbotDrawer() {
   const chatRef = useRef<HTMLDivElement>(null);
@@ -41,19 +46,30 @@ export default function ChatbotDrawer() {
   const [mode, setMode] = useState<'general' | 'personal'>('general');
 
   const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [activeChatSession, setActiveChatSession] = useState<string | null>(
+    null,
+  );
 
   const { mutate: handleChatMutation, isPending } = useMutation({
-    mutationFn: async ({ isThinking }: { isThinking: boolean }) => {
+    mutationFn: async ({
+      isThinking,
+      sessionId,
+      history,
+    }: {
+      isThinking: boolean;
+      sessionId: string;
+      history: Conversation[];
+    }) => {
+      let finalThought = '';
+      let finalAnswer = '';
+      let historyFromAI: Conversation[] = [];
+
       if (isThinking) {
         setConversation((prev) => [
           ...prev,
           { role: 'model', parts: [{ thought: true, text: '' }, { text: '' }] },
         ]);
-        const response = await handleChatStreaming(
-          conversation,
-          isThinking,
-          mode,
-        );
+        const response = await handleChatStreaming(history, isThinking, mode);
         for await (const chunk of response) {
           setConversation((prev) => {
             const newConversation = [...prev];
@@ -77,20 +93,37 @@ export default function ChatbotDrawer() {
                 },
               ],
             };
+            historyFromAI = newConversation;
             return newConversation;
           });
+
+          if (chunk.startsWith('[thought]')) {
+            finalThought += chunk.replace('[thought]', '');
+          } else {
+            finalAnswer += chunk;
+          }
         }
+
+        if (historyFromAI.length === 0) {
+          historyFromAI = [
+            ...history,
+            {
+              role: 'model',
+              parts: [
+                { thought: true, text: finalThought },
+                { text: finalAnswer },
+              ],
+            },
+          ];
+        }
+        await updateChatSession(sessionId, historyFromAI);
         return response;
       } else {
         setConversation((prev) => [
           ...prev,
           { role: 'model', parts: [{ text: '' }] },
         ]);
-        const response = await handleChatStreaming(
-          conversation,
-          isThinking,
-          mode,
-        );
+        const response = await handleChatStreaming(history, isThinking, mode);
         for await (const chunk of response) {
           setConversation((prev) => {
             const newConversation = [...prev];
@@ -102,9 +135,23 @@ export default function ChatbotDrawer() {
                 { text: newConversation[lastIndex].parts[0].text + chunk },
               ],
             };
+            historyFromAI = newConversation;
             return newConversation;
           });
+          finalAnswer += chunk;
         }
+
+        if (historyFromAI.length === 0) {
+          historyFromAI = [
+            ...history,
+            {
+              role: 'model',
+              parts: [{ text: finalAnswer }],
+            },
+          ];
+        }
+
+        await updateChatSession(sessionId, historyFromAI);
         return response;
       }
     },
@@ -122,11 +169,28 @@ export default function ChatbotDrawer() {
       role: 'user',
       parts: [{ text: message }],
     };
-    const title = message.substring(0, 30) + (message.length > 30 ? '...' : '');
-    const newSession = await createChatSession(title);
-    console.log(newSession);
-    setConversation((prev) => [...prev, newMessage]);
-    handleChatMutation({ isThinking });
+
+    const history = [...conversation, newMessage];
+    setConversation(history);
+    let sessionId = activeChatSession;
+
+    try {
+      if (!sessionId) {
+        const title =
+          message.substring(0, 30) + (message.length > 30 ? '...' : '');
+        const newSession: ChatSession = await createChatSession(title);
+        sessionId = newSession.id;
+        setActiveChatSession(sessionId);
+      } else {
+        await updateChatSession(sessionId, history);
+      }
+      handleChatMutation({ isThinking, sessionId, history });
+    } catch (error) {
+      toast.error(
+        'Failed to save message: ' +
+          (error instanceof Error ? error.message : String(error)),
+      );
+    }
   }
 
   useEffect(() => {
@@ -262,13 +326,17 @@ export default function ChatbotDrawer() {
                             {part.thought ? (
                               <Collapsible>
                                 <CollapsibleTrigger asChild>
-                                  <Button variant="ghost">
-                                    Tampilkan alur berpikir
+                                  <Button
+                                    variant="secondary"
+                                    className="mt-1 text-xs font-medium cursor-pointer"
+                                    size="sm"
+                                  >
+                                    Thought
                                     <ChevronDownIcon />
                                   </Button>
                                 </CollapsibleTrigger>
                                 <CollapsibleContent>
-                                  <div className="pl-2 ml-4 border-l">
+                                  <div className="pl-2 ml-4 text-xs italic border-l border-muted text-muted-foreground">
                                     <Markdown>{part.text}</Markdown>
                                   </div>
                                 </CollapsibleContent>
