@@ -11,6 +11,8 @@ import {
   Part,
 } from '@google/genai';
 import { getTransactionDeclaration } from './function-transaction';
+import { createClient } from '@/lib/supabase/server';
+import { getUserData } from '../auth/action';
 
 export async function handleChat(
   conversation: Conversation[],
@@ -305,4 +307,25 @@ export async function* handleChatStreaming(
       }
     }
   }
+}
+
+export async function createChatSession(title: string = 'New Conversation') {
+  const supabase = await createClient();
+  const user = await getUserData();
+
+  if (!user) throw new Error('Unauthorized');
+
+  const { data, error } = await supabase
+    .from('chat_sessions')
+    .insert({
+      title,
+      user_id: user.id,
+      messages: [],
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  return data;
 }

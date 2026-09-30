@@ -11,7 +11,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
-import { handleChatStreaming } from '@/features/ai/chat';
+import { createChatSession, handleChatStreaming } from '@/features/ai/chat';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeftIcon,
@@ -117,11 +117,14 @@ export default function ChatbotDrawer() {
     },
   });
 
-  function sendMessage(message: string) {
+  async function sendMessage(message: string) {
     const newMessage = {
       role: 'user',
       parts: [{ text: message }],
     };
+    const title = message.substring(0, 30) + (message.length > 30 ? '...' : '');
+    const newSession = await createChatSession(title);
+    console.log(newSession);
     setConversation((prev) => [...prev, newMessage]);
     handleChatMutation({ isThinking });
   }
