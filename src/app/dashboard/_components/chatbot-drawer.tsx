@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/drawer';
 import {
   createChatSession,
+  deleteChatSession,
   getChatSession,
   handleChatStreaming,
   updateChatSession,
@@ -23,6 +24,7 @@ import {
   BotIcon,
   ChevronDownIcon,
   EllipsisIcon,
+  Loader2Icon,
   MessageSquareIcon,
   PlusIcon,
   Trash2Icon,
@@ -230,6 +232,28 @@ export default function ChatbotDrawer() {
     setShowHistory(false);
   }
 
+  const {
+    mutate: mutateDeleteChatSession,
+    isPending: isLoadingDeleteChatSession,
+  } = useMutation({
+    mutationKey: ['deleteChatSession'],
+    mutationFn: async (payload: { sessionId: string }) => {
+      await deleteChatSession(payload.sessionId);
+    },
+    onSuccess() {
+      refetchSessions();
+      toast.success('Chat session deleted successfully');
+      setActiveChatSession(null);
+      setConversation([]);
+    },
+    onError(error) {
+      toast.error(
+        'Failed to delete chat session: ' +
+          (error instanceof Error ? error.message : String(error)),
+      );
+    },
+  });
+
   return (
     <Drawer direction="right" modal={false}>
       <DrawerTrigger className="fixed bottom-4 right-4" asChild>
@@ -320,8 +344,19 @@ export default function ChatbotDrawer() {
                         variant="ghost"
                         size="icon"
                         className="cursor-pointer hover:text-destructive text-muted-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          mutateDeleteChatSession({
+                            sessionId: chatSession.id,
+                          });
+                        }}
+                        disabled={isLoadingDeleteChatSession}
                       >
-                        <Trash2Icon />
+                        {isLoadingDeleteChatSession ? (
+                          <Loader2Icon className="animate-spin" />
+                        ) : (
+                          <Trash2Icon />
+                        )}
                       </Button>
                     </div>
                   ))}

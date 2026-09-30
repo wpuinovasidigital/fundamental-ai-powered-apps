@@ -366,3 +366,20 @@ export async function getChatSession() {
 
   return data || [];
 }
+
+export async function deleteChatSession(id: string) {
+  const supabase = await createClient();
+  const user = await getUserData();
+
+  if (!user) throw new Error('Unauthorized');
+
+  const { error, success } = await supabase
+    .from('chat_sessions')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) throw new Error(error.message);
+
+  return { success };
+}
