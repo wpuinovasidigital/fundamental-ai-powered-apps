@@ -11,9 +11,18 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
-import { handleChat, handleChatStreaming } from '@/features/ai/chat';
+import { handleChatStreaming } from '@/features/ai/chat';
 import { cn } from '@/lib/utils';
-import { BotIcon, ChevronDownIcon, EllipsisIcon, XIcon } from 'lucide-react';
+import {
+  ArrowLeftIcon,
+  BotIcon,
+  ChevronDownIcon,
+  EllipsisIcon,
+  MessageSquareIcon,
+  PlusIcon,
+  Trash2Icon,
+  XIcon,
+} from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ChatbotTextarea from './chatbot-textarea';
 import { useMutation } from '@tanstack/react-query';
@@ -30,6 +39,8 @@ export default function ChatbotDrawer() {
   const [conversation, setConversation] = useState<Conversation[]>([]);
   const [isThinking, setIsThinking] = useState<boolean>(false);
   const [mode, setMode] = useState<'general' | 'personal'>('general');
+
+  const [showHistory, setShowHistory] = useState<boolean>(false);
 
   const { mutate: handleChatMutation, isPending } = useMutation({
     mutationFn: async ({ isThinking }: { isThinking: boolean }) => {
@@ -127,35 +138,99 @@ export default function ChatbotDrawer() {
   return (
     <Drawer direction="right" modal={false}>
       <DrawerTrigger className="fixed bottom-4 right-4" asChild>
-        <Button
-          className="rounded-full size-14"
-          size="icon-lg"
-          variant="outline"
-        >
+        <Button className="rounded-full size-14" size="icon-lg">
           <BotIcon className="size-6" />
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="w-screen! md:w-110!">
-        <DrawerHeader className="flex flex-row justify-between">
-          <div>
-            <DrawerTitle className="font-bold text-primary">
-              AI Financial Advisor
-            </DrawerTitle>
-            <DrawerDescription>
-              Get personalized financial advice.
-            </DrawerDescription>
+      <DrawerContent className="w-screen! md:w-110! flex flex-col h-full">
+        <DrawerHeader className="flex flex-row items-center justify-between pb-4 border-b">
+          {showHistory ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="cursor-pointer"
+                onClick={() => setShowHistory(false)}
+              >
+                <ArrowLeftIcon />
+              </Button>
+              <DrawerTitle className="text-base font-bold text-primary">
+                Chat History
+              </DrawerTitle>
+            </div>
+          ) : (
+            <div>
+              <DrawerTitle className="font-bold text-primary">
+                AI Financial Advisor
+              </DrawerTitle>
+              <DrawerDescription className="text-xs">
+                Get personalized financial advice
+              </DrawerDescription>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1.5 ml-auto">
+            {showHistory ? (
+              <Button>
+                <PlusIcon className="size-4" />
+                New Chat
+              </Button>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setShowHistory(true)}
+                  className="cursor-pointer"
+                >
+                  <MessageSquareIcon className="size-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="cursor-pointer"
+                >
+                  <PlusIcon className="size-4" />
+                </Button>
+              </>
+            )}
           </div>
+
           <DrawerClose asChild>
             <Button variant="outline" size="icon">
               <XIcon />
             </Button>
           </DrawerClose>
         </DrawerHeader>
-        <div className="h-full px-4 overflow-y-auto no-scrollbar">
-          {conversation.length > 0 ? (
+        <div className="flex flex-col flex-1 min-h-0 px-4 py-2 overflow-y-auto no-scrollbar">
+          {showHistory ? (
+            <div>
+              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+                <MessageSquareIcon className="size-10 text-muted-foreground/40" />
+                <h4 className="text-sm font-medium text-muted-foreground">
+                  No chat history yet
+                </h4>
+                <p className="text-xs text-muted-foreground/70">
+                  Start a new conversation to get financial advice
+                </p>
+              </div>
+              {/* <div className="flex flex-col gap-2 overflow-y-auto">
+                <div className="flex items-center justify-between p-3 text-left transition-all border cursor-pointer rounded-xl border-border hover:bg-muted/70 group">
+                  <span className="font-medium truncate">Title</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="cursor-pointer hover:text-destructive text-muted-foreground"
+                  >
+                    <Trash2Icon />
+                  </Button>
+                </div>
+              </div> */}
+            </div>
+          ) : conversation.length > 0 ? (
             <div
               ref={chatRef}
-              className="flex flex-col h-full overflow-x-hidden overflow-y-auto gap-8 no-scrollbar"
+              className="flex flex-col h-full gap-8 overflow-x-hidden overflow-y-auto no-scrollbar"
             >
               {conversation.map((message, index) => (
                 <div
@@ -172,7 +247,7 @@ export default function ChatbotDrawer() {
                     })}
                   >
                     {message.role === 'model' && (
-                      <div className="flex items-center text-xs font-semibold gap-1 text-primary">
+                      <div className="flex items-center gap-1 text-xs font-semibold text-primary">
                         <BotIcon />
                         AI Advisor
                       </div>
@@ -220,15 +295,17 @@ export default function ChatbotDrawer() {
             </div>
           )}
         </div>
-        <DrawerFooter>
-          <ChatbotTextarea
-            isThinking={isThinking}
-            setIsThinking={setIsThinking}
-            sendMessage={sendMessage}
-            mode={mode}
-            setMode={setMode}
-          />
-        </DrawerFooter>
+        {!showHistory && (
+          <DrawerFooter>
+            <ChatbotTextarea
+              isThinking={isThinking}
+              setIsThinking={setIsThinking}
+              sendMessage={sendMessage}
+              mode={mode}
+              setMode={setMode}
+            />
+          </DrawerFooter>
+        )}
       </DrawerContent>
     </Drawer>
   );
