@@ -349,3 +349,20 @@ export async function updateChatSession(id: string, messages: Conversation[]) {
 
   return { success };
 }
+
+export async function getChatSession() {
+  const supabase = await createClient();
+  const user = await getUserData();
+
+  if (!user) throw new Error('Unauthorized');
+
+  const { data, error } = await supabase
+    .from('chat_sessions')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('updated_at', { ascending: false });
+
+  if (error) throw new Error(error.message);
+
+  return data || [];
+}

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/drawer';
 import {
   createChatSession,
+  getChatSession,
   handleChatStreaming,
   updateChatSession,
 } from '@/features/ai/chat';
@@ -29,7 +30,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import ChatbotTextarea from './chatbot-textarea';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import Markdown from 'react-markdown';
 import {
   Collapsible,
@@ -43,12 +44,19 @@ export default function ChatbotDrawer() {
   const chatRef = useRef<HTMLDivElement>(null);
   const [conversation, setConversation] = useState<Conversation[]>([]);
   const [isThinking, setIsThinking] = useState<boolean>(false);
-  const [mode, setMode] = useState<'general' | 'personal'>('general');
+  const [mode, setMode] = useState<'general' | 'personal'>('personal');
 
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [activeChatSession, setActiveChatSession] = useState<string | null>(
     null,
   );
+
+  const { data: chatSessions = [], refetch: refetchSessions } = useQuery<
+    ChatSession[]
+  >({
+    queryKey: ['chatSessions'],
+    queryFn: getChatSession,
+  });
 
   const { mutate: handleChatMutation, isPending } = useMutation({
     mutationFn: async ({
@@ -117,6 +125,7 @@ export default function ChatbotDrawer() {
           ];
         }
         await updateChatSession(sessionId, historyFromAI);
+        refetchSessions();
         return response;
       } else {
         setConversation((prev) => [
@@ -152,6 +161,7 @@ export default function ChatbotDrawer() {
         }
 
         await updateChatSession(sessionId, historyFromAI);
+        refetchSessions();
         return response;
       }
     },
@@ -185,6 +195,7 @@ export default function ChatbotDrawer() {
         await updateChatSession(sessionId, history);
       }
       handleChatMutation({ isThinking, sessionId, history });
+      refetchSessions();
     } catch (error) {
       toast.error(
         'Failed to save message: ' +
@@ -201,6 +212,23 @@ export default function ChatbotDrawer() {
       });
     }
   }, [conversation]);
+
+  function selectSession(sessionId: string) {
+    const session = chatSessions.find((s) => s.id === sessionId);
+    if (session) {
+      setConversation(session.messages);
+      setActiveChatSession(sessionId);
+      setShowHistory(false);
+    } else {
+      toast.error('Chat session not found');
+    }
+  }
+
+  function startNewChat() {
+    setActiveChatSession(null);
+    setConversation([]);
+    setShowHistory(false);
+  }
 
   return (
     <Drawer direction="right" modal={false}>
@@ -238,7 +266,7 @@ export default function ChatbotDrawer() {
 
           <div className="flex items-center gap-1.5 ml-auto">
             {showHistory ? (
-              <Button>
+              <Button onClick={startNewChat}>
                 <PlusIcon className="size-4" />
                 New Chat
               </Button>
@@ -256,6 +284,7 @@ export default function ChatbotDrawer() {
                   variant="outline"
                   size="icon"
                   className="cursor-pointer"
+                  onClick={startNewChat}
                 >
                   <PlusIcon className="size-4" />
                 </Button>
@@ -272,27 +301,42 @@ export default function ChatbotDrawer() {
         <div className="flex flex-col flex-1 min-h-0 px-4 py-2 overflow-y-auto no-scrollbar">
           {showHistory ? (
             <div>
-              <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
-                <MessageSquareIcon className="size-10 text-muted-foreground/40" />
-                <h4 className="text-sm font-medium text-muted-foreground">
-                  No chat history yet
-                </h4>
-                <p className="text-xs text-muted-foreground/70">
-                  Start a new conversation to get financial advice
-                </p>
-              </div>
-              {/* <div className="flex flex-col gap-2 overflow-y-auto">
-                <div className="flex items-center justify-between p-3 text-left transition-all border cursor-pointer rounded-xl border-border hover:bg-muted/70 group">
-                  <span className="font-medium truncate">Title</span>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="cursor-pointer hover:text-destructive text-muted-foreground"
-                  >
-                    <Trash2Icon />
-                  </Button>
+              {chatSessions.length > 0 ? (
+                <div className="flex flex-col gap-2 overflow-y-auto">
+                  {chatSessions.map((chatSession) => (
+                    <div
+                      key={chatSession.id}
+                      onClick={() => selectSession(chatSession.id)}
+                      className={cn(
+                        'flex items-center justify-between p-3 text-left transition-all border cursor-pointer rounded-xl border-border hover:bg-muted/70 group',
+                        activeChatSession === chatSession.id &&
+                          'border-primary bg-primary-5 hover:bg-primary/5',
+                      )}
+                    >
+                      <span className="font-medium truncate">
+                        {chatSession.title}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="cursor-pointer hover:text-destructive text-muted-foreground"
+                      >
+                        <Trash2Icon />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              </div> */}
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
+                  <MessageSquareIcon className="size-10 text-muted-foreground/40" />
+                  <h4 className="text-sm font-medium text-muted-foreground">
+                    No chat history yet
+                  </h4>
+                  <p className="text-xs text-muted-foreground/70">
+                    Start a new conversation to get financial advice
+                  </p>
+                </div>
+              )}
             </div>
           ) : conversation.length > 0 ? (
             <div
