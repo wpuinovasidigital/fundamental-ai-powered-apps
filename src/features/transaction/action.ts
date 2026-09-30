@@ -1,6 +1,6 @@
 'use server';
 
-import { Transaction } from '@/app/types/transaction';
+import { Transaction } from '@/types/transaction';
 import { createClient } from '@/lib/supabase/server';
 import { generateEmbedding } from '../ai/embedding';
 import { getUserData } from '../auth/action';

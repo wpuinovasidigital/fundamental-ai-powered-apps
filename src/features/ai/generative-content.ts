@@ -1,6 +1,6 @@
 'use server';
 
-import { Transaction } from '@/app/types/transaction';
+import { Transaction } from '@/types/transaction';
 import { findEmbedding } from './embedding';
 import { createAI } from './instance';
 import { Type } from '@google/genai';

@@ -1,6 +1,6 @@
 'use server';
 
-import { User, UserUpdated } from '@/app/types/auth';
+import { User, UserUpdated } from '@/types/auth';
 import { createClient } from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 

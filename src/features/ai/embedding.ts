@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAI } from './instance';
 import { getUserData } from '../auth/action';
-import { Transaction } from '@/app/types/transaction';
+import { Transaction } from '@/types/transaction';
 
 export async function generateEmbedding(contents: string) {
   const ai = createAI();

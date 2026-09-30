@@ -1,4 +1,4 @@
-import { Transaction } from '@/app/types/transaction';
+import { Transaction } from '@/types/transaction';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

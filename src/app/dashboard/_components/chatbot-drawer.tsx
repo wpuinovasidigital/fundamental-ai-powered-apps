@@ -23,7 +23,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Conversation } from '@/app/types/ai';
+import { Conversation } from '@/types/ai';
 
 export default function ChatbotDrawer() {
   const chatRef = useRef<HTMLDivElement>(null);

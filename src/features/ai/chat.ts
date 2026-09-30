@@ -1,6 +1,6 @@
 'use server';
 
-import { Conversation } from '@/app/types/ai';
+import { Conversation } from '@/types/ai';
 import { createAI } from './instance';
 import { findEmbedding, generateEmbedding } from './embedding';
 import {
