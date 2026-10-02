@@ -20,9 +20,9 @@ import {
   UserIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { createClient } from '@/lib/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { getUserData, signOut } from '@/features/auth/action';
 
 const sidebarItems = [
   {
@@ -45,28 +45,18 @@ const sidebarItems = [
 export function AppSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const supabase = createClient();
 
   const { data: user } = useQuery({
     queryKey: ['user'],
-    queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      return user;
-    },
+    queryFn: () => getUserData(),
   });
 
   const handleSignout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        toast.error('Failed to logout: ' + error.message);
-      } else {
-        toast.success('Logout successfully!');
-        router.push('/auth/login');
-        router.refresh();
-      }
+      await signOut();
+      toast.success('Logout successfully!');
+      router.push('/auth/login');
+      router.refresh();
     } catch {
       toast.error('An unexpected error occurred while logout.');
     }

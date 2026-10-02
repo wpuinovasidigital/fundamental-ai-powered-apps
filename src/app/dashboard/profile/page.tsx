@@ -16,12 +16,10 @@ import {
   FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
-import { authRegister, updateUser } from '@/features/auth/action';
-import { createClient } from '@/lib/supabase/client';
+import { getUserData, updateUser } from '@/features/auth/action';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { CoinsIcon, Loader2, ShieldCheckIcon } from 'lucide-react';
-import Link from 'next/link';
+import { Loader2, ShieldCheckIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -45,7 +43,6 @@ const passwordSchema = z
 
 export default function ProfilePage() {
   const router = useRouter();
-  const supabase = createClient();
 
   const infoForm = useForm<z.infer<typeof infoSchema>>({
     resolver: zodResolver(infoSchema),
@@ -65,12 +62,7 @@ export default function ProfilePage() {
 
   const { data: user } = useQuery({
     queryKey: ['user'],
-    queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      return user;
-    },
+    queryFn: () => getUserData(),
   });
 
   useEffect(() => {
