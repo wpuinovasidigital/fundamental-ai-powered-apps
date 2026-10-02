@@ -1,3 +1,5 @@
+import { Transaction } from '@/types/transaction';
+import { GoogleGenAI } from '@google/genai';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 export interface McpAuthSession {
@@ -72,4 +74,139 @@ export async function getMcpSession() {
   }
 
   throw new Error('Please login with your Fina Account.');
+}
+
+export async function getBalanceSummary() {
+  const { supabase, userId } = await getMcpSession();
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('amount, type')
+    .eq('user_id', userId);
+
+  if (error) throw new Error(error.message);
+
+  const { totalIncome, totalExpense, savings } = (data || []).reduce(
+    (acc, tx) => {
+      if (tx.type === 'income') acc.totalIncome += tx.amount;
+      else if (tx.type === 'expense') acc.totalExpense += tx.amount;
+      acc.savings = acc.totalIncome - acc.totalExpense;
+      return acc;
+    },
+    {
+      totalIncome: 0,
+      totalExpense: 0,
+      savings: 0,
+    },
+  );
+
+  return {
+    totalIncome,
+    totalExpense,
+    savings,
+  };
+}
+
+export async function getTransactions(params?: {
+  limit?: number;
+  page?: number;
+  search?: string;
+  category?: string;
+  type?: 'income' | 'expense';
+}) {
+  const { limit = 10, page = 1, search, category, type } = params || {};
+  const { supabase, userId } = await getMcpSession();
+
+  let query = supabase
+    .from('transactions')
+    .select('id, amount, type, description, date, category, created_at', {
+      count: 'exact',
+    })
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+    .order('created_at', {
+      ascending: false,
+    });
+
+  if (search) {
+    query = query.ilike('description', `%${search}%`);
+  }
+
+  if (category) {
+    query = query.eq('category', category);
+  }
+
+  if (type) {
+    query = query.eq('type', type);
+  }
+
+  const from = (page - 1) * limit;
+  const to = from + limit - 1;
+
+  const { data, error, count } = await query.range(from, to);
+
+  if (error) throw new Error(error.message);
+
+  const totalData = count || 0;
+
+  return {
+    data: data || [],
+    totalData,
+    totalPages: Math.ceil(totalData / limit),
+    page,
+    limit,
+  };
+}
+
+export async function generateEmbeddingMCP(contents: string) {
+  const apiKey = process.env.GOOGLE_GEN_AI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const ai = new GoogleGenAI({ apiKey });
+    const response = await ai.models.embedContent({
+      model: 'gemini-embedding-2',
+      contents,
+      config: {
+        outputDimensionality: 768,
+      },
+    });
+
+    if (
+      response.embeddings &&
+      response.embeddings.length > 0 &&
+      response.embeddings[0].values
+    ) {
+      return response.embeddings[0].values;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function semanticSearchTransactions(
+  query: string,
+  match_threshold?: number,
+  match_count?: number,
+) {
+  const { supabase, userId } = await getMcpSession();
+
+  const queryEmbedding = await generateEmbeddingMCP(query);
+
+  if (!queryEmbedding) {
+    return getTransactions({ search: query, limit: match_count });
+  }
+
+  const { data, error } = await supabase.rpc('match_transactions', {
+    query_embedding: queryEmbedding,
+    match_threshold: match_threshold || 0.3,
+    match_count: match_count || 15,
+  });
+
+  if (error) {
+    throw new Error('Failed to perform semantic search.');
+  }
+
+  return data.filter((tx: Transaction) => tx.user_id === userId);
 }
