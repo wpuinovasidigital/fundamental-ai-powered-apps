@@ -17,6 +17,7 @@ import {
   getChatSession,
   handleChatStreaming,
   updateChatSession,
+  handleChatStreamingSupabase,
 } from '@/features/ai/chat';
 import { cn } from '@/lib/utils';
 import {
@@ -80,6 +81,7 @@ export default function ChatbotDrawer() {
           { role: 'model', parts: [{ thought: true, text: '' }, { text: '' }] },
         ]);
         const response = await handleChatStreaming(history, isThinking, mode);
+        // const response = await handleChatStreamingSupabase(history, isThinking);
         for await (const chunk of response) {
           setConversation((prev) => {
             const newConversation = [...prev];
@@ -135,6 +137,7 @@ export default function ChatbotDrawer() {
           { role: 'model', parts: [{ text: '' }] },
         ]);
         const response = await handleChatStreaming(history, isThinking, mode);
+        // const response = await handleChatStreamingSupabase(history, isThinking);
         for await (const chunk of response) {
           setConversation((prev) => {
             const newConversation = [...prev];

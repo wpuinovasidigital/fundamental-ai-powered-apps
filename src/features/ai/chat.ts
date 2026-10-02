@@ -13,6 +13,9 @@ import {
 import { getTransactionDeclaration } from './function-transaction';
 import { createClient } from '@/lib/supabase/server';
 import { getUserData } from '../auth/action';
+import { ENVIRONMENT } from '@/config/environment';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp';
+import { Client } from '@modelcontextprotocol/sdk/client';
 
 export async function handleChat(
   conversation: Conversation[],
@@ -382,4 +385,132 @@ export async function deleteChatSession(id: string) {
   if (error) throw new Error(error.message);
 
   return { success };
+}
+
+function cleanSchemaForGemini(schema: unknown) {
+  if (!schema || typeof schema !== 'object') return {};
+
+  const rest = { ...(schema as Record<string, unknown>) };
+  delete rest.$schema;
+  delete rest.exlusiveMinimum;
+
+  if (rest.properties && typeof rest.properties === 'object') {
+    const properties: Record<string, unknown> = {};
+    for (const [key, val] of Object.entries(rest.properties)) {
+      properties[key] = cleanSchemaForGemini(val);
+    }
+    rest.properties = properties;
+  }
+
+  return rest;
+}
+
+export async function* handleChatStreamingSupabase(
+  conversation: Content[],
+  isThinking: boolean,
+) {
+  const accessToken = ENVIRONMENT.supabasePAT;
+
+  if (!accessToken) {
+    throw new Error('Token not found');
+  }
+
+  const supabaseUrl = ENVIRONMENT.supabaseUrl;
+  let projectRef;
+  if (supabaseUrl) {
+    const hostname = new URL(supabaseUrl).hostname;
+    const ref = hostname.split('.')[0];
+    if (ref && ref !== 'localhost') {
+      projectRef = ref;
+    }
+  }
+
+  const mcpUrl = new URL('https://mcp.supabase.com/mcp');
+
+  if (projectRef) {
+    mcpUrl.searchParams.set('project_ref', projectRef);
+  }
+
+  const transport = new StreamableHTTPClientTransport(mcpUrl, {
+    requestInit: {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  });
+
+  const client = new Client(
+    { name: 'fina-ai-client', version: '1.0.0' },
+    { capabilities: {} },
+  );
+
+  await client.connect(transport);
+
+  try {
+    const { tools } = await client.listTools();
+    const functionDeclarations = tools.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      parameters: cleanSchemaForGemini(tool.inputSchema),
+    }));
+
+    const ai = createAI();
+    const contents: Content[] = [...conversation];
+
+    let running = true;
+    while (running) {
+      const response = await ai.models.generateContentStream({
+        model: 'gemini-3.8-flash',
+        contents,
+        config: {
+          tools: [{ functionDeclarations }],
+          thinkingConfig: { includeThoughts: isThinking },
+        },
+      });
+
+      const modelParts: Part[] = [];
+      const functionCalls: FunctionCall[] = [];
+
+      for await (const chunk of response) {
+        const parts = chunk.candidates?.[0]?.content?.parts || [];
+        for (const part of parts) {
+          modelParts.push(part);
+          if (part.functionCall) {
+            functionCalls.push(part.functionCall);
+          } else if (part.text) {
+            yield part.thought ? `[thought]${part.text}` : part.text;
+          }
+        }
+      }
+
+      if (functionCalls.length > 0) {
+        contents.push({ role: 'model', parts: modelParts });
+
+        const functionResponseParts = await Promise.all(
+          functionCalls.map(async (functionCall) => {
+            const toolResult = await client.callTool({
+              name: functionCall.name!,
+              arguments: functionCall.args || {},
+            });
+
+            return {
+              functionResponse: {
+                name: functionCall.name,
+                response: { result: toolResult },
+                id: functionCall.id,
+              },
+            };
+          }),
+        );
+        contents.push({
+          role: 'user',
+          parts: functionResponseParts,
+        });
+      } else {
+        running = false;
+      }
+    }
+  } finally {
+    await client.close();
+  }
 }
