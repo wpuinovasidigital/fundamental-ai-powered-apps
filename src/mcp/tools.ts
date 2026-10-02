@@ -1,12 +1,15 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 import z from 'zod';
 import {
+  createTransaction,
+  deleteTransaction,
   getBalanceSummary,
   getMcpAuthStatus,
   getTransactions,
   loginToMcp,
   logoutFromMcp,
   semanticSearchTransactions,
+  updateTransaction,
 } from './client';
 import { CATEGORIES } from '@/constants/transaction-constant';
 
@@ -105,7 +108,7 @@ export function registerTools(server: McpServer) {
           content: [
             {
               type: 'text',
-              text: `${error instanceof Error ? error.message : String(error)}`,
+              text: `Error in get balance summary: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -162,7 +165,7 @@ export function registerTools(server: McpServer) {
           content: [
             {
               type: 'text',
-              text: `${error instanceof Error ? error.message : String(error)}`,
+              text: `Error on get transactions: ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };
@@ -206,7 +209,151 @@ export function registerTools(server: McpServer) {
           content: [
             {
               type: 'text',
-              text: `${error instanceof Error ? error.message : String(error)}`,
+              text: `Error in semantic search: ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    'create_transaction',
+    {
+      description: 'Add a new income or expense transaction in Fina.',
+      inputSchema: {
+        amount: z
+          .number()
+          .positive()
+          .describe('Transaction nominal ammount (e.g. 50000)'),
+        category: z
+          .enum(CATEGORIES)
+          .describe(`Category of transaction (${CATEGORIES.join(', ')})`),
+        type: z
+          .enum(['income', 'expense'])
+          .describe('Type of transaction ("income" or "expense")'),
+        date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .describe('Date in YYY-MM-DD format (e.g. 2026-09-30)'),
+        description: z
+          .string()
+          .min(1)
+          .describe('Short description of the transaction'),
+      },
+    },
+    async (args) => {
+      try {
+        const result = await createTransaction(args);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Transaction successfully created:\n${JSON.stringify(result, null, 2)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: `Error creating transaction ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    'update_transaction',
+    {
+      description: 'Add a new income or expense transaction in Fina.',
+      inputSchema: {
+        id: z
+          .uuid()
+          .describe('Unique identifier (UUID) of ther transaction to update'),
+        amount: z
+          .number()
+          .positive()
+          .optional()
+          .describe('Transaction nominal ammount (e.g. 50000)'),
+        category: z
+          .enum(CATEGORIES)
+          .optional()
+          .describe(`Category of transaction (${CATEGORIES.join(', ')})`),
+        type: z
+          .enum(['income', 'expense'])
+          .optional()
+          .describe('Type of transaction ("income" or "expense")'),
+        date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional()
+          .describe('Date in YYY-MM-DD format (e.g. 2026-09-30)'),
+        description: z
+          .string()
+          .min(1)
+          .optional()
+          .describe('Short description of the transaction'),
+      },
+    },
+    async ({ id, ...transaction }) => {
+      try {
+        const result = await updateTransaction(id, transaction);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Transaction successfully updated:\n${JSON.stringify(result, null, 2)}`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: `Error updating transaction ${error instanceof Error ? error.message : String(error)}`,
+            },
+          ],
+        };
+      }
+    },
+  );
+
+  server.registerTool(
+    'delete_transaction',
+    {
+      description:
+        'Delete a transaction from financial history by its unique identifier ID (UUID).',
+      inputSchema: {
+        id: z
+          .uuid()
+          .describe('Unique identifier (UUID) of ther transaction to delete'),
+      },
+    },
+    async ({ id }) => {
+      try {
+        const result = await deleteTransaction(id);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Transaction successfully deleted.`,
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: 'text',
+              text: `Error deleting transaction ${error instanceof Error ? error.message : String(error)}`,
             },
           ],
         };

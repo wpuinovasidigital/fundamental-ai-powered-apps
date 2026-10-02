@@ -8,3 +8,12 @@ export type Transaction = {
   user_id: string | null;
   embedding: number[] | null;
 };
+
+export type TransactionUpdate = {
+  id: string;
+  date?: string | Date;
+  description?: string;
+  category?: string;
+  amount?: number;
+  type?: 'income' | 'expense';
+};

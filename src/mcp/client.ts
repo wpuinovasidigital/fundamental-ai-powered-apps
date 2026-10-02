@@ -1,4 +1,4 @@
-import { Transaction } from '@/types/transaction';
+import { Transaction, TransactionUpdate } from '@/types/transaction';
 import { GoogleGenAI } from '@google/genai';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -209,4 +209,64 @@ export async function semanticSearchTransactions(
   }
 
   return data.filter((tx: Transaction) => tx.user_id === userId);
+}
+
+export async function createTransaction(
+  transaction: Omit<Transaction, 'id' | 'user_id' | 'embedding'>,
+) {
+  const { supabase, userId } = await getMcpSession();
+
+  const payload: Record<string, unknown> = { ...transaction, user_id: userId };
+  const embeddingVector = await generateEmbeddingMCP(
+    JSON.stringify(transaction),
+  );
+  if (embeddingVector) payload.embedding = embeddingVector;
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert(payload)
+    .select('type, category, amount, description, date')
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  return data;
+}
+
+export async function deleteTransaction(id: string) {
+  const { supabase, userId } = await getMcpSession();
+  const { error, success } = await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId);
+
+  if (error) throw new Error(error.message);
+
+  return success;
+}
+
+export async function updateTransaction(
+  id: string,
+  transaction: Omit<TransactionUpdate, 'id' | 'user_id' | 'embedding'>,
+) {
+  const { supabase, userId } = await getMcpSession();
+
+  const payload: Record<string, unknown> = { ...transaction };
+  const embeddingVector = await generateEmbeddingMCP(
+    JSON.stringify(transaction),
+  );
+  if (embeddingVector) payload.embedding = embeddingVector;
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .update(payload)
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('type, category, amount, description, date')
+    .single();
+
+  if (error) throw new Error(error.message);
+
+  return data;
 }
