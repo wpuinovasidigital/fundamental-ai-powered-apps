@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "fina": {
+      "serverUrl": "https://fina-app-beta.vercel.app/mcp"
+    }
+  }
+}

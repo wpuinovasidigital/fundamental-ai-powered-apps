@@ -8,8 +8,9 @@
     "start": "next start",
     "lint": "eslint",
     "mcp": "tsx src/mcp/index.ts",
-    "test-mcp": "npx @modelcontextprotocol/inspector http://localhost:3000/mcp",
-    "test-mcp:stdio": "npx @modelcontextprotocol/inspector npm run mcp"
+    "test-mcp:local": "npx @modelcontextprotocol/inspector http://localhost:3000/mcp",
+    "test-mcp:stdio": "npx @modelcontextprotocol/inspector npm run mcp",
+    "test-mcp:prod": "npx @modelcontextprotocol/inspector https://fina-app-beta.vercel.app/mcp"
   },
   "dependencies": {
     "@google/genai": "^2.24.0",
